@@ -4,6 +4,7 @@ import cv2
 import skimage.filters
 import skimage.util
 import skimage.morphology as morph
+from scipy.signal import find_peaks
 
 
 # Błąd segmentacji
@@ -61,24 +62,6 @@ class Segmentator:
             new.append(list[-1])
         return new
 
-    # Funkcja znajduje maksima i zwraca listę ich indeksów
-    @staticmethod
-    def __find_maximums(list):
-        maxs = []
-        i = 1
-        while i < len(list) - 1:
-            while i < len(list) - 1 and list[i + 1] >= list[i]:
-                i += 1
-            if i < len(list) - 1 and list[i + 1] < list[i]:
-                j = i
-                while list[j - 1] == list[j] and j > 0:
-                    j -= 1
-                pos = int((j + i) / 2)
-                if list[j - 1] < list[j]:
-                    maxs.append(pos)
-            i += 1
-        return maxs
-
     # Zwraca listę z indeksami znalezionych poziomich lini
     @staticmethod
     def __get_horizontal_lines(img):
@@ -91,7 +74,8 @@ class Segmentator:
             plt.step(np.arange(len(collisions)), collisions)
             plt.title('Vertical scan result')
             plt.show()
-        vertical_maxs = Segmentator.__find_maximums(collisions)
+        temp = find_peaks(collisions)
+        vertical_maxs = temp[0].tolist()
         return vertical_maxs
 
     # Zwrac listę z indeksami znalezionych pionowych lini
@@ -106,7 +90,8 @@ class Segmentator:
             plt.step(np.arange(len(collisions)), collisions)
             plt.title('Horizontal scan result')
             plt.show()
-        horizontal_maxs = Segmentator.__find_maximums(collisions)
+        temp = find_peaks(collisions)
+        horizontal_maxs = temp[0].tolist()
         return horizontal_maxs
 
     # Zwraca przerwe w poziomie pomiędzy kropkami tega samego znaku i pomiędzy sąsiednimi blokami 2x3
@@ -315,4 +300,4 @@ class Segmentator:
             raise SegmentationException
 
         # Zwrócenie wyniku
-        return segments
+        return tresh, segments
