@@ -1,15 +1,26 @@
-from segmentator import *
+from segmentator import Segmentator, SegmentationException
 from analyzer import Analyzer
-import cv2
-
-path = 'images/real/1.png'
-dot_size = 100
 
 
-image = cv2.imread(path, 0)
-thresh, segments = Segmentator.segment(image, dot_size, True)
-text = Analyzer.analyse(thresh, segments)
-print('Decoded text: %s' % text)
+def decode(image, dot_size=100, debug=False):
+    """
+    Funkcja dekoduje tekst zakodowany w postaci kodu Braille'a
+
+    Paremetry:
+        image       - Obraz w odcieniach szarości
+        dot_size    - Rozmiar kropki
+        debug       - Czy mają być wyświetlanie wyniki poszczególnych etapów
+
+    Wartość zwracana
+        Odczytany tekst w postaci napisu
+    """
+
+    try:
+        thresh, segments = Segmentator.segment(image, dot_size, debug)
+        text = Analyzer.analyse(thresh, segments)
+        return text
+    except SegmentationException:
+        return "ERROR: Unable to decode text"
 
 
 

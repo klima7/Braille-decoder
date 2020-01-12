@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-import skimage.filters
-import skimage.util
 import skimage.morphology as morph
 from scipy.signal import find_peaks
 
@@ -36,7 +34,7 @@ class Segmentator:
                 count += 1
         return count
 
-    # Zawaca średnią różnicę pomiędzy kolejnymy liczbami na liści
+    # Zwracą średnią różnicę pomiędzy kolejnymy liczbami na liście
     @staticmethod
     def __get_avg_distance_between(l):
         sum = 0
@@ -49,20 +47,9 @@ class Segmentator:
     # Filtr średniej ruchomej o rozmiarze okienka size
     @staticmethod
     def __avg_filter(list, size):
-        new = []
-        for i in range(size):
-            new.append(list[0])
-        for i in range(size, len(list) - size):
-            avg = 0
-            for j in range(i - size, i + size + 1):
-                avg += list[j]
-            avg /= size + 1
-            new.append(int(avg))
-        for i in range(size):
-            new.append(list[-1])
-        return new
+        return np.convolve(np.array(list), np.ones((size*2+1,)) / (size*2+1), mode='same').tolist()
 
-    # Zwraca listę z indeksami znalezionych poziomich lini
+    # Zwraca listę z indeksami znalezionych poziomich linii
     @staticmethod
     def __get_horizontal_lines(img):
         collisions = []
@@ -227,48 +214,53 @@ class Segmentator:
             temp = sorted(temp, key=lambda k: [k[1], k[0]])
             rectangle.extend(temp)
 
-    """
-    Funkcja znajdująca segmenty, czyli poszczególne znaki na obrazie
-
-    Parametry:
-        image       -  Obraz w odcieniach szarości 
-        smoothing   -  Moc wygładzania, wymagane dla zdjęć wykonywanych aparatem (połowa średnicy kropki zwykle dobrze się sprawdza, średnicy=80 -> wygładzanie=40)
-        dot_size    -  Średnica kropki, wymagana dla dopasowania mocy wygładzania i rozmiaru elementu strukturyzującego
-
-    Wyjątki:
-        Funkcja może zgłosić wyjątek klasy Exception gdy segmentacja obrazu się nie powiedzie
-
-    Wartość zwracana:
-        Zwracana jest lista znalezionych zegmentów, postaci [SEG, SEG, SEG, SEG, SEG...]
-        Każdy segment SEG jest listą ośmiu punktów [POINT1, POINT2, POINT3, POINT4, POINT5, POINT6, POINT7, POINT8]
-        POINT1 i POINT2 to współrzędne lewego-górnego i prawego-dolnego wierzchołka prostokątka zawierającego znaleziony znak
-        POINT3, POINT4, POINT5, POINT6, POINT7, POINT8 - To współrzędne sześciu kropek wewnątrz znaku, uporządkowane wierszami:
-
-        Rysunek pomocniczy:
-
-            POINT1
-                    POINT3 POINT4
-                    POINT5 POINT6
-                    POINT7 POINT8
-                                    POINT2
-    """
-
     @staticmethod
     def segment(image, dot_size=30, debug=False):
+        """
+        Funkcja znajdująca segmenty, czyli poszczególne znaki na obrazie
+
+        Parametry:
+            image       -  Obraz w odcieniach szarości
+            smoothing   -  Moc wygładzania, wymagane dla zdjęć wykonywanych aparatem (połowa średnicy kropki zwykle dobrze się sprawdza, średnicy=80 -> wygładzanie=40)
+            dot_size    -  Średnica kropki, wymagana dla dopasowania mocy wygładzania i rozmiaru elementu strukturyzującego
+
+        Wyjątki:
+            Funkcja może zgłosić wyjątek klasy Exception gdy segmentacja obrazu się nie powiedzie
+
+        Wartość zwracana:
+            Zwracana jest lista znalezionych zegmentów, postaci [SEG, SEG, SEG, SEG, SEG...]
+            Każdy segment SEG jest listą ośmiu punktów [POINT1, POINT2, POINT3, POINT4, POINT5, POINT6, POINT7, POINT8]
+            POINT1 i POINT2 to współrzędne lewego-górnego i prawego-dolnego wierzchołka prostokątka zawierającego znaleziony znak
+            POINT3, POINT4, POINT5, POINT6, POINT7, POINT8 - To współrzędne sześciu kropek wewnątrz znaku, uporządkowane wierszami:
+
+            Rysunek pomocniczy:
+
+                POINT1
+                        POINT3 POINT4
+                        POINT5 POINT6
+                        POINT7 POINT8
+                                        POINT2
+        """
+
         # Ustawienie żądanych parametrów
         Segmentator.__dot_size = dot_size
         Segmentator.__debug = debug
 
         try:
-            # Preprocesing - poprawa jakoci obrazu
             cimg = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-            treshold = skimage.filters.threshold_minimum(image)
-            tresh = image < treshold
-            struct_size = int(dot_size/3) if dot_size/3 < 15 else 15
-            tresh = morph.binary_closing(tresh, morph.disk(struct_size))
-            tresh = morph.binary_opening(tresh, morph.disk(struct_size))
 
-            # Wyświetlenie wyniku preprocesingu
+            # Negatyw
+            image = 255-image
+
+            # Progowanie adaptacyjne
+            tresh = cv2.adaptiveThreshold(image, 0.8, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 2*Segmentator.__dot_size+1, 0)
+
+            # Operacje morfologiczne
+            struct_size = int(dot_size/3) if dot_size/3 < 15 else 15
+            tresh = morph.binary_opening(tresh, morph.disk(struct_size))
+            tresh = morph.binary_closing(tresh, morph.disk(struct_size))
+
+            # Wyświetlenie wyniku
             if Segmentator.__debug:
                 plt.imshow(tresh, 'gray')
                 plt.title('Preprocessing result')

@@ -40,20 +40,21 @@ class Analyzer:
                     return key.capitalize()
                 else:
                     return key
-
-    """
-    Funkcja analizuje obraz i zwraca odczytany tekst
-
-    Parametry:
-        image    -  Obraz w odcieniach szarości
-        segments -  Segmenty znalezione przez segmentator
-
-    Wartość zwracana:
-        Odczytany z obrazu tekst
-    """
+        return '?'
 
     @staticmethod
     def analyse(image, segments):
+        """
+        Funkcja analizuje obraz i zwraca odczytany tekst
+
+        Parametry:
+            image    -  Obraz w odcieniach szarości
+            segments -  Segmenty znalezione przez segmentator
+
+        Wartość zwracana:
+            Odczytany z obrazu tekst
+        """
+
         segments = [segment[2:] for segment in segments]
         for i, segment in enumerate(segments):
             for j, position in enumerate(segment):
