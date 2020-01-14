@@ -40,7 +40,7 @@ class Analyzer:
                     return key.capitalize()
                 else:
                     return key
-        return '?'
+        return ''
 
     @staticmethod
     def analyse(image, segments):
@@ -84,7 +84,7 @@ class Analyzer:
             "'": [0, 0, 0, 0, 1, 0],
             '-': [0, 0, 0, 0, 1, 1],
             '!': [0, 0, 1, 1, 1, 0],
-            '?': [0, 0, 1, 0, 1, 1],
+            '"': [0, 0, 1, 0, 1, 1],
             ':': [0, 0, 1, 1, 0, 0],
             '"': [0, 0, 1, 1, 1, 1],
         }
@@ -130,5 +130,6 @@ class Analyzer:
             if last_sign not in ['numeric', 'capital', 'grade_1st', 'close_quote']:
                 text.append(last_sign)
         text = "".join(text).strip()
+        text = " ".join(text.split())
         return text
 

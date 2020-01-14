@@ -247,6 +247,12 @@ class Segmentator:
         Segmentator.__debug = debug
 
         try:
+            # Wyświetlenie wyniku
+            if Segmentator.__debug:
+                plt.imshow(image, 'gray')
+                plt.title('Input Image')
+                plt.show()
+
             cimg = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
             # Negatyw
@@ -263,7 +269,7 @@ class Segmentator:
             # Wyświetlenie wyniku
             if Segmentator.__debug:
                 plt.imshow(tresh, 'gray')
-                plt.title('Preprocessing result')
+                plt.title('Image segmentation result')
                 plt.show()
 
             # Znalezienie widocznych linii
@@ -284,8 +290,8 @@ class Segmentator:
                     cimg = cv2.rectangle(cimg, seg[0], seg[1], (0, 0, 255), int(dot_size/4))
                     for dot in seg[2:]:
                         cimg = cv2.circle(cimg, dot, int(dot_size/3), (255, 0, 0), -1)
+                plt.title('Found characters')
                 plt.imshow(cimg)
-                plt.title('Segmentation result')
                 plt.show()
 
         except:
