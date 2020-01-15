@@ -247,7 +247,7 @@ class Segmentator:
         Segmentator.__debug = debug
 
         try:
-            # Wyświetlenie wyniku
+            # Wyświetlenie obrazu początkowego
             if Segmentator.__debug:
                 plt.imshow(image, 'gray')
                 plt.title('Input Image')
