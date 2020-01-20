@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import cv2
 import skimage.morphology as morph
 from scipy.signal import find_peaks
+from skimage.measure import regionprops
+from scipy import ndimage
 
 
 # Błąd segmentacji
@@ -214,14 +216,29 @@ class Segmentator:
             temp = sorted(temp, key=lambda k: [k[1], k[0]])
             rectangle.extend(temp)
 
+    # Funkcja próbuje wypoziomować obraz
     @staticmethod
-    def segment(image, dot_size=30, debug=False):
+    def __rotate(thresh):
+        props = regionprops(1 * thresh)
+        orient = props[0].orientation
+        if orient > 0:
+            orient = np.pi/2-orient
+        elif orient < 0:
+            orient = -np.pi/2-orient
+        thresh = ndimage.rotate(thresh, np.rad2deg(orient))
+        struct_size = int(Segmentator.__dot_size / 3) if Segmentator.__dot_size / 3 < 15 else 15
+        thresh = morph.binary_closing(thresh, morph.disk(struct_size))
+        return thresh
+
+    @staticmethod
+    def segment(image, dot_size=30, rotate=False, debug=False):
         """
         Funkcja znajdująca segmenty, czyli poszczególne znaki na obrazie
 
         Parametry:
             image       -  Obraz w odcieniach szarości
             smoothing   -  Moc wygładzania, wymagane dla zdjęć wykonywanych aparatem (połowa średnicy kropki zwykle dobrze się sprawdza, średnicy=80 -> wygładzanie=40)
+            rotate      -  Czy automatyczne poziomowanie ma być wykonywane
             dot_size    -  Średnica kropki, wymagana dla dopasowania mocy wygładzania i rozmiaru elementu strukturyzującego
 
         Wyjątki:
@@ -266,6 +283,10 @@ class Segmentator:
             tresh = morph.binary_opening(tresh, morph.disk(struct_size))
             tresh = morph.binary_closing(tresh, morph.disk(struct_size))
 
+            # Możemy proóbować wypoziomować obraz, lub nie
+            if rotate:
+                tresh = Segmentator.__rotate(tresh)
+
             # Wyświetlenie wyniku
             if Segmentator.__debug:
                 plt.imshow(tresh, 'gray')
@@ -284,18 +305,7 @@ class Segmentator:
             segments = Segmentator.__cvt_lines_to_rects(horizontal_lines, vertical_lines)
             Segmentator.__add_dots(segments, horizontal_lines, vertical_lines)
 
-            # Wyświetlenie wyniku segmentacji
-            if Segmentator.__debug:
-                for seg in segments:
-                    cimg = cv2.rectangle(cimg, seg[0], seg[1], (0, 0, 255), int(dot_size/4))
-                    for dot in seg[2:]:
-                        cimg = cv2.circle(cimg, dot, int(dot_size/3), (255, 0, 0), -1)
-                plt.title('Found characters')
-                plt.imshow(cimg)
-                plt.show()
-
         except:
             raise SegmentationException
 
-        # Zwrócenie wyniku
         return tresh, segments
